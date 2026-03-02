@@ -1,0 +1,39 @@
+- name: Playbook to install applications
+  hosts: hosts_list
+  become: true # Run with 'sudo'
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install git
+      apt:
+        name: git
+        state: present
+
+    - name: Install docker
+      apt:
+        name: docker.io
+        state: present
+        
+    - name: Install docker-compose
+      shell: curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+    - name: Make docker-compose executable
+      shell: chmod +x /usr/local/bin/docker-compose
+
+    - name: Clone the repository
+      git:
+        repo: 'https://github.com/your-username/todo-app.git'
+        dest: /root
+        version: main
+
+    - name: Create docker network
+      shell: docker network create todo-network
+
+    - name: Run MongoDB container
+      shell: docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
+    
+    - name: Run backend and frontend containers
+      shell: docker compose /root/todo-app up -d --build

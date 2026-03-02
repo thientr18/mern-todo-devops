@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  backend:
+    build: ./app/backend
+    container_name: todo-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./app/backend/.env
+    networks:
+      - todo-network
+    restart: always
+
+  frontend:
+    build: ./app/frontend
+    container_name: todo-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+    restart: always
+
+networks:
+  todo-network:
+    external: true
+
+# docker network create todo-network
+# docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
+# docker compose up -d --build
+
+
+# docker run -d -it --name todo-iac -v D:\.workspace\mern-todo-devops\infrastructure\:/root ubuntu:24.04
+# apt update
+# apt install unzip -y
+# apt install wget -y
+# cd ./root/terraform
+# wget https://releases.hashicorp.com/terraform/1.14.6/terraform_1.14.6_linux_amd64.zip
+# unzip terraform_1.14.6_linux_amd64.zip
+# mv terraform /usr/local/bin/
+# terraform init
+# terraform apply
+# ssh -i "C:\Users\Admin\ssh_key" root@
+# cd ../ansible
+# apt install ansible -y
+# ansible hosts_list -i hosts.ini -m ping
+# ansible-playbook -i hosts.ini todo-playhook.yml
