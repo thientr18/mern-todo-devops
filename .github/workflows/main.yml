@@ -1,0 +1,9 @@
+name: Deploy
+on:
+    workflow_dispatch:
+jobs:
+    run-demo:
+        runs-on: ubuntu-latest
+        steps:
+            - run: |
+                echo "Deploying to production..."

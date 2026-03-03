@@ -37,3 +37,6 @@
     
     - name: Run backend and frontend containers
       shell: docker compose /root/todo-app up -d --build
+
+    - name: Clean up unused Docker images
+      shell: docker image prune -f
