@@ -24,7 +24,6 @@ yarn-error.log*
 
 # editor directories and files
 digital.auto.tfvars
-ssh_key
 
 # Terraform
 **/.terraform/
@@ -34,7 +33,9 @@ ssh_key
 *.tfstate.backup
 .terraform.tfstate.lock.info
 
-# SSH và certificates
+# SSH & certificates
+server_ssh_key
+server_ssh_key.pub
 *.pem
 *.key
 *.pub
@@ -49,7 +50,7 @@ known_hosts
 *~
 .DS_Store
 
-# Docker volumes data (nếu có)
+# Docker volumes data
 volumes/
 data/
 

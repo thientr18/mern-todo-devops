@@ -42,8 +42,9 @@ networks:
 # mv terraform /usr/local/bin/
 # terraform init
 # terraform apply
-# ssh -i "C:\Users\Admin\ssh_key" root@
 # cd ../ansible
 # apt install ansible -y
 # ansible hosts_list -i hosts.ini -m ping
 # ansible-playbook -i hosts.ini todo-playhook.yml
+
+# ssh -i "C:\Users\Admin\ssh_key" root@SERVER_IP_ADDRESS

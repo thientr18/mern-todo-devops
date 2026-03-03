@@ -23,11 +23,13 @@
     - name: Make docker-compose executable
       shell: chmod +x /usr/local/bin/docker-compose
 
-    - name: Clone the repository
+    - name: Pull code from private GitHub repository
       git:
-        repo: 'https://github.com/your-username/todo-app.git'
-        dest: /root
+        repo: 'git@github.com:thientr18/mern-todo-devops.git'
+        dest: /root/mern-todo-app
         version: main
+        key_file: /root/.ssh/github_deploy
+        accept_hostkey: yes
 
     - name: Create docker network
       shell: docker network create todo-network
@@ -36,7 +38,7 @@
       shell: docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
     
     - name: Run backend and frontend containers
-      shell: docker compose /root/todo-app up -d --build
+      shell: docker compose /root/mern-todo-app up -d --build
 
     - name: Clean up unused Docker images
       shell: docker image prune -f
