@@ -31,8 +31,20 @@
         key_file: /root/.ssh/github_deploy
         accept_hostkey: yes
 
+    - name: Configure SSH for GitHub access
+      copy:
+        dest: /root/.ssh/config
+        content: |
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile /root/.ssh/github_deploy
+        mode: '0600'
+
     - name: Create docker network
-      shell: docker network create todo-network
+      docker_network:
+        name: todo-network
+        state: present
 
     - name: Run MongoDB container
       shell: docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
@@ -42,31 +54,22 @@
         dest: /root/mern-todo-app/app/backend/.env
         content: |
           MONGO_URI=mongodb://todo-mongo:27017/todo
-          GMAIL_USERNAME=your_email_address
-          GMAIL_PASSWORD=your_email_password
+          GMAIL_USERNAME=
+          GMAIL_PASSWORD=
           PORT=8000
           JWT_SECRET=<0513gVeUv'£
           SERVER_IP={{ ansible_default_ipv4.address }}
           REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
         mode: '0600'
-
-    - name: Create frontend .env file
+        
+    - name: Create docker-compose .env
       copy:
-        dest: /root/mern-todo-app/app/frontend/.env
+        dest: /root/mern-todo-app/.env
         content: |
           REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
-        mode: '0600'
-
-    - name: Export environment variable for docker-compose
-      lineinfile:
-        path: /root/.bashrc
-        line: 'export REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api'
-        create: yes
 
     - name: Run backend and frontend containers
-      shell: |
-        cd /root/mern-todo-app
-        docker-compose up -d --build
+      shell: docker-compose up -d --build
       args:
         chdir: /root/mern-todo-app
 
