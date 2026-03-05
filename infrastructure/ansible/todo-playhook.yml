@@ -37,8 +37,25 @@
     - name: Run MongoDB container
       shell: docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
     
+    - name: Create backend .env file
+      copy:
+        dest: /root/mern-todo-app/app/backend/.env
+        content: |
+          MONGO_URI=mongodb://todo-mongo:27017/todo
+          GMAIL_USERNAME=
+          GMAIL_PASSWORD=
+          PORT=8000
+          JWT_SECRET=<0513gVeUv'£
+          SERVER_IP=
+          REACT_APP_API_URL=http://${SERVER_IP}:8000/api
+        mode: '0600'
+
     - name: Run backend and frontend containers
-      shell: docker compose /root/mern-todo-app up -d --build
+      shell: |
+        cd /root/mern-todo-app
+        docker-compose up -d --build
+      args:
+        chdir: /root/mern-todo-app
 
     - name: Clean up unused Docker images
       shell: docker image prune -f

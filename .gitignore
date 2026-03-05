@@ -32,6 +32,11 @@ digital.auto.tfvars
 *.tfstate.*
 *.tfstate.backup
 .terraform.tfstate.lock.info
+**/terraform/LICENSE.txt
+**/terraform/terraform_1.14.6_linux_amd64.zip
+infrastructure/.wget-hsts
+**/.terraform.d/
+**/.ansible/
 
 # SSH & certificates
 server_ssh_key
@@ -41,6 +46,7 @@ server_ssh_key.pub
 *.pub
 id_rsa*
 known_hosts
+*.ssh/
 
 # IDE
 .vscode/

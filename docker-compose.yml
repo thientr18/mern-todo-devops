@@ -27,12 +27,12 @@ networks:
   todo-network:
     external: true
 
+# docker run -d -it --name todo-iac -v D:\.workspace\mern-todo-devops\infrastructure\:/root ubuntu:24.04
+
 # docker network create todo-network
 # docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
 # docker compose up -d --build
 
-
-# docker run -d -it --name todo-iac -v D:\.workspace\mern-todo-devops\infrastructure\:/root ubuntu:24.04
 # apt update
 # apt install unzip -y
 # apt install wget -y
