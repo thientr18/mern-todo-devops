@@ -58,14 +58,9 @@ Before provisioning infrastructure, you need to create sensitive configuration f
 
 First, generate the SSH key pair that will be used throughout the deployment pipeline:
 
-**On Linux/Mac:**
+**📍 Run on your local machine:**
 ```bash
 ssh-keygen -t rsa -b 4096 -f infrastructure/ansible/server_ssh_key -N ""
-```
-
-**On Windows PowerShell:**
-```powershell
-ssh-keygen -t rsa -b 4096 -f infrastructure/ansible/server_ssh_key -N '""'
 ```
 
 This creates two files:
@@ -140,68 +135,50 @@ ssh_key = "08:a9:ab:e0:6e:82:3a:98:74:0e:f4:3b:52:db:7f:98"
 6. Terraform uses server_ssh_key for SSH access
 ```
 
-#### Step 5: Create Backend Environment File
+#### Step 5: Prepare Email Credentials for Deployment
 
-The backend requires environment variables for database connection, email service, and JWT authentication.
+The backend requires environment variables for database connection, email service, and JWT authentication. **Ansible will automatically create the `.env` file on the server**, so you don't need to create it locally.
 
-Create `app/backend/.env` with the following content:
+**What you need to prepare:**
 
-```env
-MONGO_URI=mongodb://todo-mongo:27017/todo
-GMAIL_USERNAME=your_email@gmail.com
-GMAIL_PASSWORD=your_gmail_app_password
-PORT=8000
-JWT_SECRET=your_secure_random_string
-```
+- **Gmail Account**: For sending password reset emails
+- **Gmail App Password**: Generate at https://myaccount.google.com/apppasswords
+  - You need to enable 2-factor authentication first
+  - Select "App passwords" and create a new one for "Mail"
+  - Copy this password - you'll configure it in the Ansible playbook
 
-**Configuration Details:**
+**Environment Variables (configured in Ansible playbook):**
 
 - **`MONGO_URI`**: MongoDB connection string (use `todo-mongo` as host for Docker network)
 - **`GMAIL_USERNAME`**: Your Gmail address for sending password reset emails
 - **`GMAIL_PASSWORD`**: Gmail App Password (NOT your regular Gmail password)
-  - Generate at: https://myaccount.google.com/apppasswords
-  - You need to enable 2-factor authentication first
-  - Select "App passwords" and create a new one for "Mail"
 - **`PORT`**: Backend server port (default: 8000)
 - **`JWT_SECRET`**: A secure random string for JWT token encryption
-  - Generate with: `openssl rand -base64 32` (Linux/Mac)
-  - Or use a password generator with at least 32 characters
-
-**Example with real values:**
-```env
-MONGO_URI=mongodb://todo-mongo:27017/todo
-GMAIL_USERNAME=myapp@gmail.com
-GMAIL_PASSWORD=abcd efgh ijkl mnop
-PORT=8000
-JWT_SECRET=xK9mP2vL8nQ4tR7wE3yU6iO1aS5dF0gH
-```
+- **`SERVER_IP`**: Automatically detected by Ansible using `{{ ansible_default_ipv4.address }}`
+- **`REACT_APP_API_URL`**: Automatically constructed from SERVER_IP
 
 ⚠️ **Security Notes:**
-- This file is excluded from version control (`.gitignore`)
-- Never commit this file to your repository
+- Never commit credentials to your repository
 - Use different credentials for development and production
-- The same email configuration will be used in the Ansible playbook for deployment
+- You'll configure these values in the Ansible playbook before deployment
 
 ### 1. Infrastructure Provisioning
 
 #### Step 1: Create Infrastructure Container
 
-Create a container with Terraform installed:
-
+**📍 Run on your local machine:**
 ```bash
-docker run -d -it --name todo-iac -v /infrastructure:/root ubuntu:24.04
+docker run -d -it --name todo-iac -v "$(pwd)/infrastructure":/root ubuntu:24.04
 ```
 
 #### Step 2: Install Terraform in Container
 
-Access the container and install Terraform:
-
+**📍 Run on your local machine to access the container:**
 ```bash
 docker exec -it todo-iac bash
 ```
 
-Inside the container, run:
-
+**🐳 Inside IAC container, run:**
 ```bash
 apt update
 apt install unzip wget -y
@@ -213,8 +190,7 @@ mv terraform /usr/local/bin/
 
 #### Step 3: Provision Infrastructure
 
-Now provision your DigitalOcean infrastructure:
-
+**🐳 Still inside IAC container:**
 ```bash
 terraform init
 terraform apply
@@ -224,7 +200,10 @@ Terraform will use the `server_ssh_key` (whose fingerprint is in `digital.auto.t
 
 After successful provisioning, note down the **droplet IP addresses** from the Terraform output.
 
-Type `exit` to leave the container when done.
+**Exit the container:**
+```bash
+exit
+```
 
 ### 2. GitHub Actions Setup
 
@@ -232,6 +211,7 @@ Configure deploy keys for secure CI/CD deployment:
 
 #### Step 1: Connect to Your VPS
 
+**📍 Run on your local machine:**
 ```bash
 ssh -i infrastructure/ansible/server_ssh_key root@YOUR_DROPLET_IP
 ```
@@ -240,8 +220,7 @@ Replace `YOUR_DROPLET_IP` with the actual IP address from Terraform output.
 
 #### Step 2: Generate SSH Deploy Key
 
-Run the following command on your VPS to generate a deployment key:
-
+**🖥️ On VPS server, run:**
 ```bash
 ssh-keygen -t ed25519 -f /root/.ssh/github_deploy -N ""
 ```
@@ -252,8 +231,7 @@ This creates two files:
 
 #### Step 3: Add Public Key to GitHub
 
-Display the public key:
-
+**🖥️ Still on VPS server, display the public key:**
 ```bash
 cat /root/.ssh/github_deploy.pub
 ```
@@ -280,6 +258,8 @@ Your GitHub Actions workflow needs access to your servers. Add the following sec
 - **`SERVER_HOST`**: Your droplet IP address (from Terraform output)
 - **`SERVER_USER`**: `root` (or your configured SSH user)
 - **`SERVER_SSH_KEY`**: The SSH private key that Terraform uses
+  
+  **📍 Run on your local machine:**
   ```bash
   cat infrastructure/ansible/server_ssh_key
   ```
@@ -291,6 +271,8 @@ Your GitHub Actions workflow needs access to your servers. Add the following sec
   - Should match the public key uploaded to DigitalOcean
 
 - **`DEPLOY_PRIVATE_KEY`**: The deploy key generated on the VPS (from Step 2)
+  
+  **🖥️ Run on VPS server:**
   ```bash
   cat /root/.ssh/github_deploy
   ```
@@ -321,13 +303,13 @@ YOUR_DROPLET_IP ansible_user=root ansible_ssh_private_key_file=/root/ansible/ser
 
 #### Configure Email Credentials in Playbook
 
-Before deploying, you need to configure the email credentials in the Ansible playbook for the production environment.
+Before deploying, you need to configure the email credentials in the Ansible playbook. **Ansible will automatically create all `.env` files on the server** with the correct configuration.
 
 1. Open `infrastructure/ansible/todo-playhook.yml`
 
-2. Locate the "Create backend .env file" task (around line 41)
+2. Locate the "Create backend .env file" task
 
-3. Update the `GMAIL_USERNAME` and `GMAIL_PASSWORD` values with your credentials:
+3. Update the `GMAIL_USERNAME` and `GMAIL_PASSWORD` values with your Gmail credentials:
 
 ```yaml
 - name: Create backend .env file
@@ -339,13 +321,17 @@ Before deploying, you need to configure the email credentials in the Ansible pla
       GMAIL_PASSWORD=your_gmail_app_password
       PORT=8000
       JWT_SECRET=<0513gVeUv'£
+      SERVER_IP={{ ansible_default_ipv4.address }}
+      REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
     mode: '0600'
 ```
 
 **Important:**
-- Use the **same Gmail App Password** you configured in `app/backend/.env` (Step 5 of Setup)
-- The `JWT_SECRET` should also match your local development environment for consistency
-- Alternatively, you can use different credentials for production vs development
+- `{{ ansible_default_ipv4.address }}` automatically detects the server's IP address
+- Replace `your_email@gmail.com` with your actual Gmail address
+- Replace `your_gmail_app_password` with your Gmail App Password (from Step 5)
+- You can use different credentials for production vs development
+- The `.env` file will be created automatically during Ansible deployment
 
 **Example configuration:**
 ```yaml
@@ -355,20 +341,18 @@ content: |
   GMAIL_PASSWORD=wxyzabcdefghijkl
   PORT=8000
   JWT_SECRET=production_secret_key_here
-  SERVER_IP=
-  REACT_APP_API_URL=http://${SERVER_IP}:8000/api
+  SERVER_IP={{ ansible_default_ipv4.address }}
+  REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
 ```
 
 #### Deploy with Ansible
 
-Access the `todo-iac` container and use Ansible to deploy:
-
+**📍 Run on your local machine to access IAC container:**
 ```bash
 docker exec -it todo-iac bash
 ```
 
-Inside the container, install Ansible and run the playbook:
-
+**🐳 Inside IAC container, install Ansible and deploy:**
 ```bash
 cd /root/ansible
 apt install ansible -y
@@ -385,37 +369,10 @@ This will:
 - Deploy the application containers
 - Set up necessary networking and security
 
-Type `exit` to leave the container when done.
-
-## 💻 Local Development
-
-To run the application locally for development:
-
-**Note:** For local development, Docker Compose will automatically create the network and start MongoDB. The network and MongoDB provisioning via Ansible (described in the deployment section) is only for remote server deployment.
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd mern-todo-devops
-   ```
-
-2. **Create backend environment file**
-   
-   Follow **Step 5** in the Setup Configuration Files section above to create `app/backend/.env` with your email and database credentials.
-
-3. **Start with Docker Compose**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-
-5. **Stop the application**
-   ```bash
-   docker-compose down
-   ```
+**Exit the container:**
+```bash
+exit
+```
 
 ## ✨ Features
 
@@ -431,10 +388,29 @@ To run the application locally for development:
 
 ## 📝 Notes
 
-- **Important:** Update `infrastructure/ansible/hosts.ini` with your actual droplet IP address after Terraform provisioning (see Section 3)
-- **Email Configuration:** Configure Gmail credentials in both `app/backend/.env` (for local development) and `infrastructure/ansible/todo-playhook.yml` (for production deployment)
+### Command Execution Locations
+
+**📍 Local Machine:** Your computer where the repository is cloned
+- Generate SSH keys
+- Create environment files
+- Run Docker to create IAC container
+- Connect to IAC container or VPS server
+
+**🐳 IAC Container:** Docker container running Ubuntu with Terraform/Ansible
+- Install and run Terraform
+- Install and run Ansible
+- Deploy infrastructure and applications
+
+**🖥️ VPS Server:** DigitalOcean droplet (production server)
+- Generate GitHub deploy keys
+- Application runs here after deployment
+
+### Important Notes
+
+- **Update** `infrastructure/ansible/hosts.ini` with your actual droplet IP address after Terraform provisioning (see Section 3)
+- **Email Configuration:** Configure Gmail credentials in `infrastructure/ansible/todo-playhook.yml` before deployment - Ansible will automatically create all `.env` files on the server
 - All infrastructure tooling (Terraform, Ansible) runs inside the `todo-iac` Docker container for consistency
-- **Docker Network & MongoDB:** For remote deployment, Ansible automatically creates the Docker network and MongoDB container on your DigitalOcean droplet. For local development, Docker Compose handles this automatically.
+- Ansible automatically creates the Docker network and MongoDB container on your DigitalOcean droplet
 - Ensure firewall rules allow traffic on required ports (80, 443, 3000, 8000)
 
 ### 🔒 Security Notes
@@ -443,9 +419,10 @@ The following sensitive files are excluded from version control (`.gitignore`):
 - `infrastructure/terraform/digital.auto.tfvars` - Contains DigitalOcean API token and SSH key fingerprint
 - `infrastructure/ansible/server_ssh_key` - SSH private key for server access
 - `infrastructure/ansible/server_ssh_key.pub` - Corresponding public key
-- `app/backend/.env` - Backend environment variables (database, email credentials, JWT secret)
 
 **Never commit these files to your repository!** Each team member/environment should create their own copies based on the instructions in the deployment guide.
+
+**Note:** Backend environment variables (`.env` files) are automatically created by Ansible during deployment - you don't need to create them locally.
 
 **Additional Security Recommendations:**
 - Use different Gmail accounts/passwords for development and production

@@ -42,13 +42,26 @@
         dest: /root/mern-todo-app/app/backend/.env
         content: |
           MONGO_URI=mongodb://todo-mongo:27017/todo
-          GMAIL_USERNAME=
-          GMAIL_PASSWORD=
+          GMAIL_USERNAME=your_email_address
+          GMAIL_PASSWORD=your_email_password
           PORT=8000
           JWT_SECRET=<0513gVeUv'£
-          SERVER_IP=
-          REACT_APP_API_URL=http://${SERVER_IP}:8000/api
+          SERVER_IP={{ ansible_default_ipv4.address }}
+          REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
         mode: '0600'
+
+    - name: Create frontend .env file
+      copy:
+        dest: /root/mern-todo-app/app/frontend/.env
+        content: |
+          REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
+        mode: '0600'
+
+    - name: Export environment variable for docker-compose
+      lineinfile:
+        path: /root/.bashrc
+        line: 'export REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api'
+        create: yes
 
     - name: Run backend and frontend containers
       shell: |
