@@ -351,8 +351,8 @@ Before deploying, you need to configure the email credentials in the Ansible pla
 ```yaml
 content: |
   MONGO_URI=mongodb://todo-mongo:27017/todo
-  GMAIL_USERNAME=
-  GMAIL_PASSWORD=
+  GMAIL_USERNAME=production.app@gmail.com
+  GMAIL_PASSWORD=wxyzabcdefghijkl
   PORT=8000
   JWT_SECRET=production_secret_key_here
   SERVER_IP=
