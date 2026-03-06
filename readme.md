@@ -208,33 +208,15 @@ exit
 
 ### 2. GitHub Actions Setup
 
-Configure deploy keys for secure CI/CD deployment:
+Configure GitHub secrets and deploy keys for automated CI/CD deployment:
 
-#### Step 1: Connect to Your VPS
+#### Step 1: Add Deploy Key to GitHub
+
+To allow the VPS server to pull code from your repository, add the public key as a deploy key:
 
 **📍 Run on your local machine:**
 ```bash
-ssh -i infrastructure/ansible/server_ssh_key root@YOUR_DROPLET_IP
-```
-
-Replace `YOUR_DROPLET_IP` with the actual IP address from Terraform output.
-
-#### Step 2: Generate SSH Deploy Key
-
-**🖥️ On VPS server, run:**
-```bash
-ssh-keygen -t ed25519 -f /root/.ssh/github_deploy -N ""
-```
-
-This creates two files:
-- `/root/.ssh/github_deploy` (private key)
-- `/root/.ssh/github_deploy.pub` (public key)
-
-#### Step 3: Add Public Key to GitHub
-
-**🖥️ Still on VPS server, display the public key:**
-```bash
-cat /root/.ssh/github_deploy.pub
+cat infrastructure/ansible/server_ssh_key.pub
 ```
 
 Copy the output and add it to your GitHub repository:
@@ -243,11 +225,11 @@ Copy the output and add it to your GitHub repository:
 2. Navigate to **Settings** → **Deploy keys**
 3. Click **Add deploy key**
 4. Paste the public key
-5. Give it a descriptive title (e.g., "Todo Server Deploy Key")
-6. Check **Allow write access** if needed
+5. Give it a descriptive title (e.g., "VPS Server Deploy Key")
+6. Check **Allow write access** if your workflow requires pushing changes
 7. Click **Add key**
 
-#### Step 4: Add GitHub Secrets for CI/CD
+#### Step 2: Add GitHub Secrets
 
 Your GitHub Actions workflow needs access to your servers. Add the following secrets:
 
@@ -269,18 +251,8 @@ Your GitHub Actions workflow needs access to your servers. Add the following sec
   ⚠️ **Critical:** This is the **same private key** that:
   - Terraform uses to create the VPS (its fingerprint is in `digital.auto.tfvars`)
   - Ansible uses to configure the servers
-  - Should match the public key uploaded to DigitalOcean
-
-- **`DEPLOY_PRIVATE_KEY`**: The deploy key generated on the VPS (from Step 2)
-  
-  **🖥️ Run on VPS server:**
-  ```bash
-  cat /root/.ssh/github_deploy
-  ```
-
-**Understanding the Two Keys:**
-- `SERVER_SSH_KEY`: Infrastructure key for server access (used by Terraform/Ansible/CI)
-- `DEPLOY_PRIVATE_KEY`: Application deployment key for GitHub repo access (generated on VPS)
+  - GitHub Actions uses to deploy the application
+  - Should match the public key uploaded to DigitalOcean and GitHub Deploy Keys
 
 ### 3. Application Deployment
 
@@ -485,8 +457,8 @@ Follow the prompts to complete SSL certificate installation. Certbot will automa
 - Deploy infrastructure and applications
 
 **🖥️ VPS Server:** DigitalOcean droplet (production server)
-- Generate GitHub deploy keys
 - Application runs here after deployment
+- Nginx configuration and SSL setup
 
 ### Important Notes
 
