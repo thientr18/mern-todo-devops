@@ -16,7 +16,12 @@ mongoose.set('strictQuery', true);
 //middlewares
 app.use(express.json())
 app.use(cors({
-  origin: [`http://${process.env.SERVER_IP}:3000`, 'http://localhost:3000'],
+  origin: [
+    `http://${process.env.SERVER_IP}:3000`,
+    'http://localhost:3000',
+    `http://${process.env.SERVER_DOMAIN}`,
+    `https://${process.env.SERVER_DOMAIN}` ],
+    
   credentials: true
 }));
 

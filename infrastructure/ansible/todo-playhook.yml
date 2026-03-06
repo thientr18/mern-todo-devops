@@ -59,7 +59,6 @@
           PORT=8000
           JWT_SECRET=<0513gVeUv'£
           SERVER_IP={{ ansible_default_ipv4.address }}
-          REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
         mode: '0600'
         
     - name: Create docker-compose .env

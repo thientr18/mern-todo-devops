@@ -155,7 +155,6 @@ The backend requires environment variables for database connection, email servic
 - **`PORT`**: Backend server port (default: 8000)
 - **`JWT_SECRET`**: A secure random string for JWT token encryption
 - **`SERVER_IP`**: Automatically detected by Ansible using `{{ ansible_default_ipv4.address }}`
-- **`REACT_APP_API_URL`**: Automatically constructed from SERVER_IP
 
 ⚠️ **Security Notes:**
 - Never commit credentials to your repository
@@ -322,7 +321,6 @@ Before deploying, you need to configure the email credentials in the Ansible pla
       PORT=8000
       JWT_SECRET=<0513gVeUv'£
       SERVER_IP={{ ansible_default_ipv4.address }}
-      REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
     mode: '0600'
 ```
 
@@ -342,7 +340,6 @@ content: |
   PORT=8000
   JWT_SECRET=production_secret_key_here
   SERVER_IP={{ ansible_default_ipv4.address }}
-  REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
 ```
 
 #### Deploy with Ansible
