@@ -11,6 +11,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo application with compl
   - [1. Infrastructure Provisioning](#1-infrastructure-provisioning)
   - [2. GitHub Actions Setup](#2-github-actions-setup)
   - [3. Application Deployment](#3-application-deployment)
+  - [4. Nginx & Domain Setup](#4-nginx--domain-setup)
 - [Local Development](#local-development)
 - [Features](#features)
 
@@ -19,6 +20,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo application with compl
 - **Frontend**: React.js with Tailwind CSS
 - **Backend**: Node.js with Express
 - **Database**: MongoDB
+- **Reverse Proxy**: Nginx with SSL/TLS (Let's Encrypt)
 - **Infrastructure**: DigitalOcean Droplets
 - **IaC**: Terraform
 - **Configuration Management**: Ansible
@@ -370,6 +372,90 @@ This will:
 ```bash
 exit
 ```
+
+### 4. Nginx & Domain Setup
+
+Configure Nginx as a reverse proxy and enable HTTPS for your domain.
+
+#### Step 1: Install Nginx
+
+**🖥️ On VPS server, run:**
+```bash
+sudo apt update
+sudo apt install nginx -y
+```
+
+#### Step 2: Configure Nginx
+
+Create a new Nginx configuration file:
+
+```bash
+sudo nano /etc/nginx/sites-available/todo
+```
+
+Add the following configuration (replace `todo.yourdomain.com` with your actual domain):
+
+```nginx
+server {
+    listen 80;
+    server_name todo.yourdomain.com;
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+#### Step 3: Enable Configuration
+
+```bash
+sudo ln -s /etc/nginx/sites-available/todo /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+#### Step 4: Configure DNS
+
+Before enabling SSL, configure your domain's DNS settings:
+
+1. Go to your domain registrar's DNS management panel
+2. Add an **A record** pointing to your droplet's IP address:
+   - **Type**: A
+   - **Name**: `todo` (or `@` for root domain)
+   - **Value**: `YOUR_DROPLET_IP`
+   - **TTL**: 3600 (or default)
+3. Wait for DNS propagation (usually 5-15 minutes, can take up to 48 hours)
+4. Verify DNS resolution: `ping todo.yourdomain.com`
+
+#### Step 5: Enable HTTPS with SSL
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d todo.yourdomain.com
+```
+
+Follow the prompts to complete SSL certificate installation. Certbot will automatically:
+- Obtain a free SSL certificate from Let's Encrypt
+- Update your Nginx configuration
+- Enable HTTPS redirect
+
+**✅ Your application is now accessible at:** `https://todo.yourdomain.com`
 
 ## ✨ Features
 
