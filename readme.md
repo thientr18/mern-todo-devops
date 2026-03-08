@@ -11,7 +11,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo application with compl
   - [1. Infrastructure Provisioning](#1-infrastructure-provisioning)
   - [2. GitHub Actions Setup](#2-github-actions-setup)
   - [3. Application Deployment](#3-application-deployment)
-  - [4. Nginx & Domain Setup](#4-nginx--domain-setup)
+  - [4. Nginx Proxy Manager Setup](#4-nginx-proxy-manager-setup)
 - [Local Development](#local-development)
 - [Features](#features)
 
@@ -20,7 +20,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo application with compl
 - **Frontend**: React.js with Tailwind CSS
 - **Backend**: Node.js with Express
 - **Database**: MongoDB
-- **Reverse Proxy**: Nginx with SSL/TLS (Let's Encrypt)
+- **Reverse Proxy**: Nginx Proxy Manager with SSL/TLS (Let's Encrypt)
 - **Infrastructure**: DigitalOcean Droplets
 - **IaC**: Terraform
 - **Configuration Management**: Ansible
@@ -280,40 +280,44 @@ Before deploying, you need to configure the email credentials in the Ansible pla
 
 1. Open `infrastructure/ansible/todo-playhook.yml`
 
-2. Locate the "Create backend .env file" task
+2. Locate the "Create backend .env" task
 
 3. Update the `GMAIL_USERNAME` and `GMAIL_PASSWORD` values with your Gmail credentials:
 
 ```yaml
-- name: Create backend .env file
+- name: Create backend .env
   copy:
     dest: /root/mern-todo-app/app/backend/.env
     content: |
       MONGO_URI=mongodb://todo-mongo:27017/todo
-      GMAIL_USERNAME=your_email@gmail.com
-      GMAIL_PASSWORD=your_gmail_app_password
-      PORT=8000
+      GMAIL_USERNAME=
+      GMAIL_PASSWORD=
+      SERVER_DOMAIN=
       JWT_SECRET=<0513gVeUv'£
-      SERVER_IP={{ ansible_default_ipv4.address }}
-    mode: '0600'
+      PORT=8000
+    mode: "0600"
 ```
 
 **Important:**
-- `{{ ansible_default_ipv4.address }}` automatically detects the server's IP address
-- Replace `your_email@gmail.com` with your actual Gmail address
-- Replace `your_gmail_app_password` with your Gmail App Password (from Step 5)
+- Replace the empty `GMAIL_USERNAME=` with your actual Gmail address
+- Replace the empty `GMAIL_PASSWORD=` with your Gmail App Password (from Step 5)
+- Replace the empty `SERVER_DOMAIN=` with your domain (e.g., `https://todo.yourdomain.com`)
 - You can use different credentials for production vs development
 - The `.env` file will be created automatically during Ansible deployment
 
 **Example configuration:**
 ```yaml
-content: |
-  MONGO_URI=mongodb://todo-mongo:27017/todo
-  GMAIL_USERNAME=production.app@gmail.com
-  GMAIL_PASSWORD=wxyzabcdefghijkl
-  PORT=8000
-  JWT_SECRET=production_secret_key_here
-  SERVER_IP={{ ansible_default_ipv4.address }}
+- name: Create backend .env
+  copy:
+    dest: /root/mern-todo-app/app/backend/.env
+    content: |
+      MONGO_URI=mongodb://todo-mongo:27017/todo
+      GMAIL_USERNAME=production.app@gmail.com
+      GMAIL_PASSWORD=wxyzabcdefghijkl
+      SERVER_DOMAIN=https://todo.yourdomain.com
+      JWT_SECRET=<0513gVeUv'£
+      PORT=8000
+    mode: "0600"
 ```
 
 #### Deploy with Ansible
@@ -345,66 +349,13 @@ This will:
 exit
 ```
 
-### 4. Nginx & Domain Setup
+### 4. Nginx Proxy Manager Setup
 
-Configure Nginx as a reverse proxy and enable HTTPS for your domain.
+Configure Nginx Proxy Manager as a reverse proxy with automatic HTTPS for your domain. Nginx Proxy Manager is already included in your Docker Compose configuration and provides a web-based interface for managing proxies and SSL certificates.
 
-#### Step 1: Install Nginx
+#### Step 1: Configure DNS
 
-**🖥️ On VPS server, run:**
-```bash
-sudo apt update
-sudo apt install nginx -y
-```
-
-#### Step 2: Configure Nginx
-
-Create a new Nginx configuration file:
-
-```bash
-sudo nano /etc/nginx/sites-available/todo
-```
-
-Add the following configuration (replace `todo.yourdomain.com` with your actual domain):
-
-```nginx
-server {
-    listen 80;
-    server_name todo.yourdomain.com;
-
-    # Frontend
-    location / {
-        proxy_pass http://localhost:3000/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Backend API
-    location /api/ {
-        proxy_pass http://localhost:8000/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-#### Step 3: Enable Configuration
-
-```bash
-sudo ln -s /etc/nginx/sites-available/todo /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-#### Step 4: Configure DNS
-
-Before enabling SSL, configure your domain's DNS settings:
+Before accessing Nginx Proxy Manager, configure your domain's DNS settings:
 
 1. Go to your domain registrar's DNS management panel
 2. Add an **A record** pointing to your droplet's IP address:
@@ -415,19 +366,79 @@ Before enabling SSL, configure your domain's DNS settings:
 3. Wait for DNS propagation (usually 5-15 minutes, can take up to 48 hours)
 4. Verify DNS resolution: `ping todo.yourdomain.com`
 
-#### Step 5: Enable HTTPS with SSL
+#### Step 2: Access Nginx Proxy Manager Dashboard
 
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d todo.yourdomain.com
+Open your browser and navigate to:
+```
+http://YOUR_DROPLET_IP:81
 ```
 
-Follow the prompts to complete SSL certificate installation. Certbot will automatically:
-- Obtain a free SSL certificate from Let's Encrypt
-- Update your Nginx configuration
-- Enable HTTPS redirect
+**Default login credentials:**
+- **Email**: `admin@example.com`
+- **Password**: `changeme`
+
+⚠️ **Important:** Change the default password immediately after first login!
+
+#### Step 3: Create Proxy Host for Frontend
+
+1. Navigate to **Dashboard** → **Proxy Hosts** → **Add Proxy Host**
+
+2. In the **Details** tab, configure:
+   - **Domain Names**: `todo.yourdomain.com` (or your actual domain)
+   - **Scheme**: `http`
+   - **Forward Hostname / IP**: `todo-frontend`
+   - **Forward Port**: `80`
+   - **Cache Assets**: ✅ (optional)
+   - **Block Common Exploits**: ✅
+   - **Websockets Support**: ✅
+
+3. Click **Save** (don't configure SSL yet)
+
+#### Step 4: Add Backend API Route
+
+1. Go back to your newly created Proxy Host and click **Edit**
+
+2. Navigate to the **Custom Locations** tab
+
+3. Click **Add Location** and configure:
+   - **Define Location**: `/api`
+   - **Scheme**: `http`
+   - **Forward Hostname / IP**: `todo-backend`
+   - **Forward Port**: `8000`
+   - **Websockets Support**: ✅
+
+4. Click **Save**
+
+#### Step 5: Enable HTTPS with SSL
+
+1. Edit your Proxy Host again
+
+2. Navigate to the **SSL** tab
+
+3. Configure SSL settings:
+   - **SSL Certificate**: Select **Request a new SSL Certificate**
+   - **Force SSL**: ✅
+   - **HTTP/2 Support**: ✅
+   - **HSTS Enabled**: ✅ (optional, for enhanced security)
+   - **Email Address for Let's Encrypt**: `your-email@gmail.com`
+   - **Agree to Let's Encrypt Terms**: ✅
+
+4. Click **Save**
+
+Nginx Proxy Manager will automatically:
+- Request a free SSL certificate from Let's Encrypt
+- Configure HTTPS for your domain
+- Enable automatic HTTP to HTTPS redirect
+- Handle certificate renewal automatically
 
 **✅ Your application is now accessible at:** `https://todo.yourdomain.com`
+
+**Benefits of Nginx Proxy Manager:**
+- 🖥️ Web-based GUI for easy management
+- 🔒 Automatic SSL certificate generation and renewal
+- 🔄 No manual nginx configuration files needed
+- 📊 Built-in access logs and statistics
+- 🔧 Easy to add multiple domains and services
 
 ## ✨ Features
 
@@ -458,7 +469,7 @@ Follow the prompts to complete SSL certificate installation. Certbot will automa
 
 **🖥️ VPS Server:** DigitalOcean droplet (production server)
 - Application runs here after deployment
-- Nginx configuration and SSL setup
+- Access Nginx Proxy Manager dashboard for SSL and proxy configuration
 
 ### Important Notes
 
@@ -466,7 +477,11 @@ Follow the prompts to complete SSL certificate installation. Certbot will automa
 - **Email Configuration:** Configure Gmail credentials in `infrastructure/ansible/todo-playhook.yml` before deployment - Ansible will automatically create all `.env` files on the server
 - All infrastructure tooling (Terraform, Ansible) runs inside the `todo-iac` Docker container for consistency
 - Ansible automatically creates the Docker network and MongoDB container on your DigitalOcean droplet
-- Ensure firewall rules allow traffic on required ports (80, 443, 3000, 8000)
+- Ensure firewall rules allow traffic on required ports (80, 81, 443)
+  - Port 80: HTTP traffic (redirects to HTTPS)
+  - Port 81: Nginx Proxy Manager dashboard
+  - Port 443: HTTPS traffic
+- Change the default Nginx Proxy Manager password immediately after first login
 
 ### 🔒 Security Notes
 

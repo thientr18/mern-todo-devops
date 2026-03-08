@@ -1,35 +1,41 @@
-- name: Playbook to install applications
+- name: Setup and deploy MERN application
   hosts: hosts_list
-  become: true # Run with 'sudo'
+  become: true
 
   tasks:
+
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install git
+    - name: Install required packages
       apt:
-        name: git
+        name:
+          - git
+          - docker.io
         state: present
 
-    - name: Install docker
-      apt:
-        name: docker.io
+    - name: Start docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create docker network
+      docker_network:
+        name: todo-network
         state: present
-        
-    - name: Install docker-compose
-      shell: curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
-    - name: Make docker-compose executable
-      shell: chmod +x /usr/local/bin/docker-compose
-
-    - name: Pull code from private GitHub repository
-      git:
-        repo: 'git@github.com:thientr18/mern-todo-devops.git'
-        dest: /root/mern-todo-app
-        version: main
-        key_file: /root/.ssh/github_deploy
-        accept_hostkey: yes
+    - name: Run MongoDB container
+      docker_container:
+        name: todo-mongo
+        image: mongo:7
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        volumes:
+          - mongo-data:/data/db
 
     - name: Configure SSH for GitHub access
       copy:
@@ -39,38 +45,32 @@
             HostName github.com
             User git
             IdentityFile /root/.ssh/github_deploy
-        mode: '0600'
+        mode: "0600"
 
-    - name: Create docker network
-      docker_network:
-        name: todo-network
-        state: present
+    - name: Pull code from private GitHub repository
+      git:
+        repo: "git@github.com:thientr18/mern-todo-devops.git"
+        dest: /root/mern-todo-app
+        version: main
+        key_file: /root/.ssh/github_deploy
+        accept_hostkey: yes
 
-    - name: Run MongoDB container
-      shell: docker run -d --name todo-mongo --network todo-network -v mongo-data:/data/db --restart always mongo:7
-    
-    - name: Create backend .env file
+    - name: Create backend .env
       copy:
         dest: /root/mern-todo-app/app/backend/.env
         content: |
           MONGO_URI=mongodb://todo-mongo:27017/todo
           GMAIL_USERNAME=
           GMAIL_PASSWORD=
-          PORT=8000
+          SERVER_DOMAIN=
           JWT_SECRET=<0513gVeUv'£
-          SERVER_IP={{ ansible_default_ipv4.address }}
-        mode: '0600'
-        
-    - name: Create docker-compose .env
-      copy:
-        dest: /root/mern-todo-app/.env
-        content: |
-          REACT_APP_API_URL=http://{{ ansible_default_ipv4.address }}:8000/api
+          PORT=8000
+        mode: "0600"
 
-    - name: Run backend and frontend containers
-      shell: docker-compose up -d --build
+    - name: Build and run containers
+      shell: docker compose up -d --build
       args:
         chdir: /root/mern-todo-app
 
-    - name: Clean up unused Docker images
+    - name: Clean unused docker images
       shell: docker image prune -f

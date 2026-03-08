@@ -10,16 +10,14 @@ import forgotPasswordRouter from "./routes/forgotPassword.js"
 //app config
 dotenv.config()
 const app = express()
-const port = process.env.PORT || 8001
+const port = process.env.PORT || 8000
 mongoose.set('strictQuery', true);
 
 //middlewares
 app.use(express.json())
 app.use(cors({
   origin: [
-    `http://${process.env.SERVER_IP}:3000`,
     'http://localhost:3000',
-    `http://${process.env.SERVER_DOMAIN}`,
     `https://${process.env.SERVER_DOMAIN}` ],
     
   credentials: true
