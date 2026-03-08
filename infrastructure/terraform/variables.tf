@@ -15,5 +15,5 @@ variable "region" {
 }
 
 variable "droplet_name" {
-  default = "terraform-vps"
+  default = "todo-vps"
 }

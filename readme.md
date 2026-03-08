@@ -212,7 +212,7 @@ Configure GitHub secrets and deploy keys for automated CI/CD deployment:
 
 #### Step 1: Add Deploy Key to GitHub
 
-To allow the VPS server to pull code from your repository, add the public key as a deploy key:
+To allow the VPS server to pull code from your private GitHub repository, add the public key as a deploy key:
 
 **📍 Run on your local machine:**
 ```bash
@@ -228,6 +228,12 @@ Copy the output and add it to your GitHub repository:
 5. Give it a descriptive title (e.g., "VPS Server Deploy Key")
 6. Check **Allow write access** if your workflow requires pushing changes
 7. Click **Add key**
+
+**How it works:**
+- Ansible will copy `server_ssh_key` to the VPS as `/root/.ssh/server_ssh_key`
+- When VPS tries to pull from GitHub, it uses this key for authentication
+- GitHub verifies the key matches the Deploy Key you added above
+- This allows secure code deployment without storing passwords
 
 #### Step 2: Add GitHub Secrets
 
@@ -278,7 +284,7 @@ YOUR_DROPLET_IP ansible_user=root ansible_ssh_private_key_file=/root/ansible/ser
 
 Before deploying, you need to configure the email credentials in the Ansible playbook. **Ansible will automatically create all `.env` files on the server** with the correct configuration.
 
-1. Open `infrastructure/ansible/todo-playhook.yml`
+1. Open `infrastructure/ansible/todo-playbook.yml`
 
 2. Locate the "Create backend .env" task
 
@@ -301,7 +307,7 @@ Before deploying, you need to configure the email credentials in the Ansible pla
 **Important:**
 - Replace the empty `GMAIL_USERNAME=` with your actual Gmail address
 - Replace the empty `GMAIL_PASSWORD=` with your Gmail App Password (from Step 5)
-- Replace the empty `SERVER_DOMAIN=` with your domain (e.g., `https://todo.yourdomain.com`)
+- Replace the empty `SERVER_DOMAIN=` with your domain (e.g., `todo.yourdomain`)
 - You can use different credentials for production vs development
 - The `.env` file will be created automatically during Ansible deployment
 
@@ -314,7 +320,7 @@ Before deploying, you need to configure the email credentials in the Ansible pla
       MONGO_URI=mongodb://todo-mongo:27017/todo
       GMAIL_USERNAME=production.app@gmail.com
       GMAIL_PASSWORD=wxyzabcdefghijkl
-      SERVER_DOMAIN=https://todo.yourdomain.com
+      SERVER_DOMAIN=todo.yourdomain
       JWT_SECRET=<0513gVeUv'£
       PORT=8000
     mode: "0600"
@@ -333,16 +339,19 @@ cd /root/ansible
 apt install ansible -y
 chmod 600 /root/ansible/server_ssh_key
 ansible hosts_list -i hosts.ini -m ping
-ansible-playbook -i hosts.ini todo-playhook.yml
+ansible-playbook -i hosts.ini todo-playbook.yml
 ```
 
 This will:
 - Install Docker and Docker Compose on the remote server
 - Create the Docker network (`todo-network`) on the remote server
 - Deploy and run MongoDB container on the remote server
-- Configure the server environment
-- Deploy the application containers
-- Set up necessary networking and security
+- Copy SSH key to server as `/root/.ssh/server_ssh_key` for GitHub access
+- Configure SSH settings for GitHub authentication
+- Pull code from your private GitHub repository
+- Create backend `.env` file with your credentials
+- Build and run application containers (frontend, backend, nginx-proxy-manager)
+- Clean up unused Docker images
 
 **Exit the container:**
 ```bash
@@ -474,7 +483,7 @@ Nginx Proxy Manager will automatically:
 ### Important Notes
 
 - **Update** `infrastructure/ansible/hosts.ini` with your actual droplet IP address after Terraform provisioning (see Section 3)
-- **Email Configuration:** Configure Gmail credentials in `infrastructure/ansible/todo-playhook.yml` before deployment - Ansible will automatically create all `.env` files on the server
+- **Email Configuration:** Configure Gmail credentials in `infrastructure/ansible/todo-playbook.yml` before deployment - Ansible will automatically create all `.env` files on the server
 - All infrastructure tooling (Terraform, Ansible) runs inside the `todo-iac` Docker container for consistency
 - Ansible automatically creates the Docker network and MongoDB container on your DigitalOcean droplet
 - Ensure firewall rules allow traffic on required ports (80, 81, 443)

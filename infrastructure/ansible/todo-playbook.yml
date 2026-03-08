@@ -13,7 +13,14 @@
         name:
           - git
           - docker.io
+          - curl
         state: present
+
+    - name: Download docker-compose
+      shell: curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+    - name: Make docker-compose executable
+      shell: chmod +x /usr/local/bin/docker-compose
 
     - name: Start docker service
       service:
@@ -37,6 +44,12 @@
         volumes:
           - mongo-data:/data/db
 
+    - name: Copy GitHub deploy key to server
+      copy:
+        src: /root/ansible/server_ssh_key
+        dest: /root/.ssh/server_ssh_key
+        mode: "0600"
+
     - name: Configure SSH for GitHub access
       copy:
         dest: /root/.ssh/config
@@ -44,7 +57,7 @@
           Host github.com
             HostName github.com
             User git
-            IdentityFile /root/.ssh/github_deploy
+            IdentityFile /root/.ssh/server_ssh_key
         mode: "0600"
 
     - name: Pull code from private GitHub repository
@@ -52,7 +65,7 @@
         repo: "git@github.com:thientr18/mern-todo-devops.git"
         dest: /root/mern-todo-app
         version: main
-        key_file: /root/.ssh/github_deploy
+        key_file: /root/.ssh/server_ssh_key
         accept_hostkey: yes
 
     - name: Create backend .env
@@ -68,7 +81,7 @@
         mode: "0600"
 
     - name: Build and run containers
-      shell: docker compose up -d --build
+      shell: docker-compose up -d --build
       args:
         chdir: /root/mern-todo-app
 
