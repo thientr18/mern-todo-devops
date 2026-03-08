@@ -85,5 +85,77 @@
       args:
         chdir: /root/mern-todo-app
 
+    - name: Run Jenkins container
+      docker_container:
+        name: jenkins
+        image: jenkins/jenkins:lts
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "8080:8080"
+          - "50000:50000"
+
+    - name: Run Prometheus container
+      docker_container:
+        name: prometheus
+        image: prom/prometheus
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "9090:9090"
+        volumes:
+          - /root/mern-todo-app/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+          - /root/mern-todo-app/prometheus/rules:/etc/prometheus/rules
+
+    - name: Run Grafana container
+      docker_container:
+        name: grafana
+        image: grafana/grafana
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "3000:3000"
+
+    - name: Run Node Exporter container
+      docker_container:
+        name: host-node-exporter
+        image: prom/node-exporter
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "9100:9100"
+
+    - name: Run Blackbox Exporter container
+      docker_container:
+        name: host-blackbox
+        image: prom/blackbox-exporter
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "9115:9115"
+
+    - name: Run Alertmanager container
+      docker_container:
+        name: alertmanager
+        image: prom/alertmanager
+        state: started
+        restart_policy: always
+        networks:
+          - name: todo-network
+        ports:
+          - "9093:9093"
+        volumes:
+          - /root/mern-todo-app/alertmanager:/etc/alertmanager
+
     - name: Clean unused docker images
       shell: docker image prune -f
