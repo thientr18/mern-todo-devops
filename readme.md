@@ -569,10 +569,19 @@ Store your server IP address as a Jenkins credential:
    - Scroll down to **Pipeline** section
    - **Definition**: Select **Pipeline script from SCM**
    - **SCM**: Select **Git**
-   - **Repository URL**: `https://github.com/YOUR_USERNAME/mern-todo-devops.git`
+   - **Repository URL**: `https://github.com/thientr18/mern-todo-devops.git`
    - **Branch Specifier**: `*/main`
-   - **Script Path**: `jenkins/Jenkinsfile`
+   - **Script Path**: `jenkins/Jenkinsfile` ⚠️ **Important: This tells Jenkins where to find the pipeline script**
 6. Click **Save**
+
+**What is Jenkinsfile?**
+The `jenkins/Jenkinsfile` is a pipeline script that defines the CI/CD process. It:
+- Clones the repository from GitHub
+- Connects to your VPS using the `server_ssh_key` credential
+- Uses the `server_host` IP address to SSH into the server
+- Pulls the latest code on the VPS
+- Rebuilds and restarts Docker containers
+- Cleans up unused Docker images
 
 #### Step 8: Run Your First Build
 
@@ -594,9 +603,6 @@ Store your server IP address as a Jenkins credential:
 The Jenkins pipeline (`jenkins/Jenkinsfile`) performs the following steps:
 
 ```groovy
-stage('Clone Repo')
-  └─ Pull latest code from GitHub
-
 stage('Deploy to VPS')
   └─ Use SSH credentials (server_ssh_key)
   └─ Connect to VPS (using server_host IP)
