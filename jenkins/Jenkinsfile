@@ -9,8 +9,8 @@ pipeline {
 
                     sshagent(credentials: ['server_ssh_key']) {
 
-                        sh '''
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_HOST} << 'EOF'
+                        sh """
+                        ssh -o StrictHostKeyChecking=no root@$SERVER_HOST << EOF
 
                         cd /root/mern-todo-app
 
@@ -22,7 +22,7 @@ pipeline {
                         docker image prune -f
 
                         EOF
-                        '''
+                        """
                     }
                 }
             }
