@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Clone Repo') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/thientr18/mern-todo-devops.git'
+            }
+        }
+
+        stage('Deploy to VPS') {
+            steps {
+
+                withCredentials([string(credentialsId: 'vps_ip', variable: 'VPS_IP')]) {
+
+                    sshagent(credentials: ['server_ssh_key']) {
+                        
+                        sh '''
+                        ssh -o StrictHostKeyChecking=no root@${VPS_IP} << 'EOF'
+
+                        cd /root/mern-todo-app
+
+                        git pull origin main
+
+                        docker compose down
+                        docker compose up -d --build
+
+                        docker image prune -f
+
+                        EOF
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
