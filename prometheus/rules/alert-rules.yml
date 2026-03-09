@@ -1,0 +1,19 @@
+groups:
+- name: test-alerts
+  rules:
+  - alert: AlwaysFiringTest
+    expr: vector(1)
+    for: 5s
+    annotations:
+      summary: "Always Firing Test Alert"
+      description: "This alert always fires for testing purposes."
+
+# Alert for RAM usage greater than 80%
+- name: ram-alerts
+  rules:
+  - alert: HighRAMUsage
+    expr: (100 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes * 100) > 80
+    for: 5s
+    annotations:
+      summary: "High RAM Usage"
+      description: "RAM > 80 % for 5 seconds"
