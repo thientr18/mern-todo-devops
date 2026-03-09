@@ -397,7 +397,7 @@ http://YOUR_DROPLET_IP:81
    - **Scheme**: `http`
    - **Forward Hostname / IP**: `todo-frontend`
    - **Forward Port**: `80`
-   - **Cache Assets**: ✅ (optional)
+   - **Cache Assets**: ✅
    - **Block Common Exploits**: ✅
    - **Websockets Support**: ✅
 
@@ -414,7 +414,6 @@ http://YOUR_DROPLET_IP:81
    - **Scheme**: `http`
    - **Forward Hostname / IP**: `todo-backend`
    - **Forward Port**: `8000`
-   - **Websockets Support**: ✅
 
 4. Click **Save**
 
@@ -428,9 +427,7 @@ http://YOUR_DROPLET_IP:81
    - **SSL Certificate**: Select **Request a new SSL Certificate**
    - **Force SSL**: ✅
    - **HTTP/2 Support**: ✅
-   - **HSTS Enabled**: ✅ (optional, for enhanced security)
-   - **Email Address for Let's Encrypt**: `your-email@gmail.com`
-   - **Agree to Let's Encrypt Terms**: ✅
+   - **HSTS Enabled**: ✅
 
 4. Click **Save**
 
