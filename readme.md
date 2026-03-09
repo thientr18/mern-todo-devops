@@ -12,6 +12,7 @@ A full-stack MERN (MongoDB, Express, React, Node.js) todo application with compl
   - [2. GitHub Actions Setup](#2-github-actions-setup)
   - [3. Application Deployment](#3-application-deployment)
   - [4. Nginx Proxy Manager Setup](#4-nginx-proxy-manager-setup)
+  - [5. Jenkins CI/CD Setup](#5-jenkins-cicd-setup)
 - [Local Development](#local-development)
 - [Features](#features)
 
@@ -73,8 +74,9 @@ The `server_ssh_key` is your **main infrastructure SSH key** that:
 - **Terraform uses** to provision and configure DigitalOcean droplets
 - **Ansible uses** to deploy applications to the servers
 - **GitHub Actions uses** for automated deployments
+- **Jenkins uses** for CI/CD pipeline deployments
 
-⚠️ **Critical:** This key is used throughout the entire deployment pipeline. Keep it secure and never commit it to version control.
+⚠️ **Critical:** This key is used throughout the entire deployment pipeline (Terraform, Ansible, GitHub Actions, and Jenkins). Keep it secure and never commit it to version control.
 
 #### Step 2: Get SSH Key Fingerprint from DigitalOcean
 
@@ -258,6 +260,7 @@ Your GitHub Actions workflow needs access to your servers. Add the following sec
   - Terraform uses to create the VPS (its fingerprint is in `digital.auto.tfvars`)
   - Ansible uses to configure the servers
   - GitHub Actions uses to deploy the application
+  - Jenkins uses for CI/CD deployments
   - Should match the public key uploaded to DigitalOcean and GitHub Deploy Keys
 
 ### 3. Application Deployment
@@ -351,6 +354,8 @@ This will:
 - Pull code from your private GitHub repository
 - Create backend `.env` file with your credentials
 - Build and run application containers (frontend, backend, nginx-proxy-manager)
+- Deploy Jenkins container for CI/CD pipeline
+- Deploy monitoring tools (Prometheus, Grafana, Node Exporter, Blackbox Exporter, Alertmanager)
 - Clean up unused Docker images
 
 **Exit the container:**
@@ -446,6 +451,178 @@ Nginx Proxy Manager will automatically:
 - 📊 Built-in access logs and statistics
 - 🔧 Easy to add multiple domains and services
 
+### 5. Jenkins CI/CD Setup
+
+Jenkins is automatically deployed on your server via the Ansible playbook and provides an alternative CI/CD pipeline to GitHub Actions. Jenkins is particularly useful for complex build workflows, scheduled jobs, and environments where you need more control over the build process.
+
+**Note:** Jenkins uses the **same SSH key** (`server_ssh_key`) that was created initially for Terraform, Ansible, and GitHub Actions.
+
+#### Step 1: Access Jenkins Dashboard
+
+Jenkins is automatically deployed via the Ansible playbook and runs on port 8080.
+
+Open your browser and navigate to:
+```
+http://YOUR_DROPLET_IP:8080
+```
+
+#### Step 2: Get Initial Admin Password
+
+To unlock Jenkins for the first time, you need to retrieve the initial admin password from the server:
+
+**📍 Run on your local machine:**
+```bash
+ssh -i infrastructure/ansible/server_ssh_key root@YOUR_DROPLET_IP
+```
+
+**🖥️ On the VPS server, run:**
+```bash
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Copy the password and paste it into the Jenkins unlock page.
+
+**Exit the VPS:**
+```bash
+exit
+```
+
+#### Step 3: Complete Jenkins Setup
+
+1. After unlocking, click **Install suggested plugins**
+2. Create your first admin user:
+   - Username: Choose your username
+   - Password: Choose a strong password
+   - Full name: Your name
+   - Email: Your email address
+3. Click **Save and Continue**
+4. Keep the default Jenkins URL and click **Save and Finish**
+5. Click **Start using Jenkins**
+
+#### Step 4: Install SSH Agent Plugin
+
+The Jenkins pipeline requires the SSH Agent plugin to connect to your VPS:
+
+1. Go to **Dashboard** → **Manage Jenkins** → **Manage Plugins**
+2. Click the **Available plugins** tab
+3. Search for "**SSH Agent**"
+4. Check the box next to **SSH Agent Plugin**
+5. Click **Install** (or **Install without restart**)
+6. Wait for installation to complete
+
+#### Step 5: Add SSH Key Credential to Jenkins
+
+Now configure Jenkins to use the **same `server_ssh_key`** that you created initially:
+
+1. Go to **Dashboard** → **Manage Jenkins** → **Manage Credentials**
+2. Click on **(global)** domain
+3. Click **Add Credentials** in the left sidebar
+4. Configure the credential:
+   - **Kind**: SSH Username with private key
+   - **ID**: `server_ssh_key` (must match the Jenkinsfile)
+   - **Description**: VPS Server SSH Key
+   - **Username**: `root`
+   - **Private Key**: Select **Enter directly**
+   - Click **Add** button under the key text area
+
+5. Get your SSH private key:
+   
+   **📍 Run on your local machine:**
+   ```bash
+   cat infrastructure/ansible/server_ssh_key
+   ```
+   
+   Copy the entire output (including `-----BEGIN` and `-----END` lines)
+
+6. Paste the private key into the **Key** text area in Jenkins
+
+7. Click **Create**
+
+**Key Reuse Confirmation:**
+This is the **same `server_ssh_key`** used by:
+- ✅ Terraform for infrastructure provisioning
+- ✅ Ansible for configuration management
+- ✅ GitHub Actions for automated deployment
+- ✅ Jenkins for CI/CD pipeline (now configured)
+
+#### Step 6: Add VPS IP as Secret
+
+Store your server IP address as a Jenkins credential:
+
+1. Still in **Manage Credentials**, click **Add Credentials** again
+2. Configure the credential:
+   - **Kind**: Secret text
+   - **Scope**: Global
+   - **Secret**: `YOUR_DROPLET_IP` (your actual server IP address)
+   - **ID**: `server_host` (must match the Jenkinsfile)
+   - **Description**: VPS Server IP Address
+3. Click **Create**
+
+#### Step 7: Create Jenkins Pipeline
+
+1. Go back to **Dashboard**
+2. Click **New Item**
+3. Enter item name: `mern-todo-deploy` (or your preferred name)
+4. Select **Pipeline** and click **OK**
+5. In the pipeline configuration:
+   - **Description**: "Deploy MERN Todo App to VPS"
+   - Scroll down to **Pipeline** section
+   - **Definition**: Select **Pipeline script from SCM**
+   - **SCM**: Select **Git**
+   - **Repository URL**: `https://github.com/YOUR_USERNAME/mern-todo-devops.git`
+   - **Branch Specifier**: `*/main`
+   - **Script Path**: `jenkins/Jenkinsfile`
+6. Click **Save**
+
+#### Step 8: Run Your First Build
+
+1. On the pipeline page, click **Build Now**
+2. Watch the build progress in the **Build History**
+3. Click on the build number (e.g., #1) to see details
+4. Click **Console Output** to view real-time logs
+
+**What the pipeline does:**
+1. **Clone Repo**: Pulls the latest code from your GitHub repository
+2. **Deploy to VPS**: 
+   - Connects to VPS using SSH (`server_ssh_key` credential)
+   - Pulls latest changes from GitHub
+   - Rebuilds and restarts Docker containers
+   - Cleans up unused Docker images
+
+#### Pipeline Workflow
+
+The Jenkins pipeline (`jenkins/Jenkinsfile`) performs the following steps:
+
+```groovy
+stage('Clone Repo')
+  └─ Pull latest code from GitHub
+
+stage('Deploy to VPS')
+  └─ Use SSH credentials (server_ssh_key)
+  └─ Connect to VPS (using server_host IP)
+  └─ Pull changes on VPS
+  └─ Rebuild containers
+  └─ Clean up Docker images
+```
+
+#### Trigger Options
+
+You can configure automatic triggers for your Jenkins pipeline:
+
+1. Edit your pipeline configuration
+2. Under **Build Triggers**, you can enable:
+   - **GitHub hook trigger for GITScm polling** - Build automatically when you push to GitHub
+   - **Poll SCM** - Check for changes periodically (e.g., `H/5 * * * *` for every 5 minutes)
+   - **Build periodically** - Build on a schedule (e.g., `H 2 * * *` for daily at 2 AM)
+
+**To enable GitHub webhook:**
+1. In your GitHub repository, go to **Settings** → **Webhooks**
+2. Click **Add webhook**
+3. Payload URL: `http://YOUR_DROPLET_IP:8080/github-webhook/`
+4. Content type: `application/json`
+5. Select **Just the push event**
+6. Click **Add webhook**
+
 ## ✨ Features
 
 - ✅ User authentication (register, login, forgot password)
@@ -483,11 +660,14 @@ Nginx Proxy Manager will automatically:
 - **Email Configuration:** Configure Gmail credentials in `infrastructure/ansible/todo-playbook.yml` before deployment - Ansible will automatically create all `.env` files on the server
 - All infrastructure tooling (Terraform, Ansible) runs inside the `todo-iac` Docker container for consistency
 - Ansible automatically creates the Docker network and MongoDB container on your DigitalOcean droplet
-- Ensure firewall rules allow traffic on required ports (80, 81, 443)
+- **SSH Key Reuse:** The same `server_ssh_key` is used across Terraform, Ansible, GitHub Actions, and Jenkins for consistency and security
+- Ensure firewall rules allow traffic on required ports (80, 81, 443, 8080)
   - Port 80: HTTP traffic (redirects to HTTPS)
   - Port 81: Nginx Proxy Manager dashboard
   - Port 443: HTTPS traffic
+  - Port 8080: Jenkins dashboard
 - Change the default Nginx Proxy Manager password immediately after first login
+- Change the Jenkins admin password after initial setup
 
 ### 🔒 Security Notes
 

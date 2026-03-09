@@ -13,12 +13,12 @@ pipeline {
         stage('Deploy to VPS') {
             steps {
 
-                withCredentials([string(credentialsId: 'vps_ip', variable: 'VPS_IP')]) {
+                withCredentials([string(credentialsId: 'server_host', variable: 'SERVER_HOST')]) {
 
                     sshagent(credentials: ['server_ssh_key']) {
-                        
+
                         sh '''
-                        ssh -o StrictHostKeyChecking=no root@${VPS_IP} << 'EOF'
+                        ssh -o StrictHostKeyChecking=no root@${SERVER_HOST} << 'EOF'
 
                         cd /root/mern-todo-app
 
