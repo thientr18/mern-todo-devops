@@ -51,6 +51,9 @@ Deployed on DigitalOcean with automated SSL/TLS, showcasing the complete DevOps 
 ## 📁 Project Structure
 
 ```
+├── .github/
+│   └── workflows/
+│       └── main.yml          # GitHub Actions CI/CD
 ├── app/
 │   ├── backend/              # Node.js API + Dockerfile
 │   └── frontend/             # React SPA + Dockerfile
@@ -161,17 +164,25 @@ ansible-playbook -i hosts.ini todo-playbook.yml
 
 **Configure GitHub Webhook:**
 1. Generate webhook secret: `openssl rand -hex 20`
-2. In Jenkins, add credential:
-   - Kind: Secret text, ID: `github-webhook-secret`
-3. Jenkins → Manage Jenkins → System → GitHub section:
+2. In GitHub, create a Personal Access Token:
+   - GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token
+   - Select scopes: `repo` (all), `admin:repo_hook` (all)
+   - Copy the generated token
+3. In Jenkins, add credentials:
+   - Kind: Secret text, ID: `github-token`, Secret: Paste your GitHub token
+   - Kind: Secret text, ID: `github-webhook-secret`, Secret: Paste your generated webhook secret (can use password generators)
+4. Jenkins → Manage Jenkins → System → GitHub section:
    - Add GitHub Server
+   - Name: `GitHub`
+   - Credentials: Select `github-token`
+   - Advanced → Check "Specify another hook URL for GitHub configuration"
    - Override Hook URL: `http://YOUR_SERVER_IP:8080/github-webhook/`
-   - Shared secret: `github-webhook-secret`
-4. Pipeline → Configure → Build Triggers:
+   - Shared secret: Select `github-webhook-secret`
+5. Pipeline → Configure → Build Triggers:
    - Enable "GitHub hook trigger for GITScm polling"
-5. GitHub repo → Settings → Webhooks → Add webhook:
+6. GitHub repo → Settings → Webhooks → Add webhook:
    - Payload URL: `http://YOUR_SERVER_IP:8080/github-webhook/`
-   - Secret: Paste your generated secret
+   - Secret: Paste your generated webhook secret
    - Event: Just the push event
 
 **Pipeline stages:**
@@ -212,18 +223,18 @@ ansible-playbook -i hosts.ini todo-playbook.yml
 
 ```
 Developer Push
-    ↓
+      ↓
 GitHub/Jenkins Webhook
-    ↓
+      ↓
 Build Pipeline Triggered
-    ↓
-├─ GitHub Actions (Automated)
-│  └─ SSH to VPS → Pull Code → Rebuild Containers
-│
-└─ Jenkins (Alternative)
-   └─ SSH to VPS → Pull Code → Rebuild Containers
-    ↓
-Zero-Downtime Deployment
+      ↓
+      ├─ GitHub Actions
+      │  └─ SSH to VPS → Pull Code → Rebuild Containers
+      │
+      └─ Jenkins
+         └─ SSH to VPS → Pull Code → Rebuild Containers
+         ↓
+      Zero-Downtime Deployment
 ```
 
 ## 🐳 Docker Architecture
