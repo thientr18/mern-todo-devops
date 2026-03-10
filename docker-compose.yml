@@ -9,8 +9,6 @@ services:
     networks:
       - todo-network
     restart: always
-    depends_on:
-      - todo-mongo
 
   frontend:
     build: 

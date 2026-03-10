@@ -2,10 +2,6 @@
 
 Production-ready MERN stack application with complete DevOps automation pipeline, demonstrating Infrastructure as Code, containerization, and CI/CD best practices.
 
-## 🔗 Live Demo
-
-**Try the app:** [https://todo.tran-thien.id.vn](https://todo.tran-thien.id.vn/)
-
 Deployed on DigitalOcean with automated SSL/TLS, showcasing the complete DevOps workflow from infrastructure provisioning to production deployment.
 
 ## 🎯 DevOps Highlights
