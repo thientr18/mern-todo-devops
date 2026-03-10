@@ -25,7 +25,7 @@ services:
     restart: always
 
   nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:2.11
+    image: jc21/nginx-proxy-manager:2.13.0
     container_name: nginx-proxy-manager
     ports:
       - "80:80"
