@@ -25,7 +25,7 @@ Deployed on DigitalOcean with automated SSL/TLS, showcasing the complete DevOps 
 - Dual pipeline implementation: GitHub Actions + Jenkins
 - Automated testing, building, and deployment
 - Webhook-triggered builds with secret validation
-- Zero-downtime deployments
+- Minimal downtime deployment with Docker Compose
 
 **Monitoring & Observability**
 - Prometheus for metrics collection
@@ -234,7 +234,7 @@ Build Pipeline Triggered
       └─ Jenkins
          └─ SSH to VPS → Pull Code → Rebuild Containers
          ↓
-      Zero-Downtime Deployment
+      Minimal downtime deployment with Docker Compose
 ```
 
 ## 🐳 Docker Architecture
@@ -264,7 +264,7 @@ Docker Network: todo-network
 ✅ **Monitoring**: Prometheus metrics + Grafana dashboards  
 ✅ **SSL/TLS**: Automated certificate management with Let's Encrypt  
 ✅ **Reverse Proxy**: Centralized routing via Nginx Proxy Manager  
-✅ **Zero-Downtime Deployment**: Rolling updates with Docker Compose  
+✅ **Minimal downtime deployment**: Rolling updates with Docker Compose  
 
 ## 📊 Monitoring Stack
 

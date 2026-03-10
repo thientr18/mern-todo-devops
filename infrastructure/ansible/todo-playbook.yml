@@ -1,9 +1,20 @@
 - name: Setup and deploy MERN application
   hosts: hosts_list
   become: true
+  environment:
+    JWT_SECRET: "your_jwt_secret_key"
+    GMAIL_USERNAME: "your_gmail_username"
+    GMAIL_PASSWORD: "your_gmail_password"
+    SERVER_DOMAIN: "your_server_domain"
+    SERVER_IP: "your_server_ip"
+    ALERT_EMAIL: "your-email@gmail.com"
+    ALERT_EMAIL_PASSWORD: "your-app-password"
 
   tasks:
-
+    - name: Install docker python library
+      pip:
+        name: docker
+  
     - name: Update apt cache
       apt:
         update_cache: yes
@@ -13,14 +24,8 @@
         name:
           - git
           - docker.io
-          - curl
+          - docker-compose-plugin
         state: present
-
-    - name: Download docker-compose
-      shell: curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
-    - name: Make docker-compose executable
-      shell: chmod +x /usr/local/bin/docker-compose
 
     - name: Start docker service
       service:
@@ -32,6 +37,10 @@
       docker_network:
         name: todo-network
         state: present
+
+    - name: Create Mongo volume
+      docker_volume:
+        name: mongo-data
 
     - name: Run MongoDB container
       docker_container:
@@ -73,17 +82,20 @@
         dest: /root/mern-todo-app/app/backend/.env
         content: |
           MONGO_URI=mongodb://todo-mongo:27017/todo
-          GMAIL_USERNAME=
-          GMAIL_PASSWORD=
-          SERVER_DOMAIN=
-          JWT_SECRET=<0513gVeUv'£
           PORT=8000
+          JWT_SECRET={{ JWT_SECRET }}
+          GMAIL_USERNAME={{ GMAIL_USERNAME }}
+          GMAIL_PASSWORD={{ GMAIL_PASSWORD }}
+          SERVER_DOMAIN={{ SERVER_DOMAIN }}
+          SERVER_IP={{ SERVER_IP }}
         mode: "0600"
 
-    - name: Build and run containers
-      shell: docker-compose up -d --build
-      args:
-        chdir: /root/mern-todo-app
+    - name: Deploy with docker compose
+      community.docker.docker_compose_v2:
+        project_src: /root/mern-todo-app
+        state: present
+        build: always
+        remove_orphans: true
 
     - name: Run Jenkins container
       docker_container:
@@ -100,13 +112,17 @@
     - name: Run Prometheus container
       docker_container:
         name: prometheus
-        image: prom/prometheus
+        image: prom/prometheus:v2.51.0
         state: started
         restart_policy: always
         networks:
           - name: todo-network
-        ports:
-          - "9090:9090"
+        healthcheck:
+          test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+        memory: 512m
         volumes:
           - /root/mern-todo-app/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
           - /root/mern-todo-app/prometheus/rules:/etc/prometheus/rules
@@ -114,9 +130,11 @@
     - name: Run Grafana container
       docker_container:
         name: grafana
-        image: grafana/grafana
+        image: grafana/grafana:10.4.2
         state: started
         restart_policy: always
+        user: "472"
+        memory: 512m
         networks:
           - name: todo-network
         ports:
@@ -125,37 +143,50 @@
     - name: Run Node Exporter container
       docker_container:
         name: host-node-exporter
-        image: prom/node-exporter
+        image: prom/node-exporter:v1.8.1
         state: started
         restart_policy: always
         networks:
           - name: todo-network
-        ports:
-          - "9100:9100"
 
     - name: Run Blackbox Exporter container
       docker_container:
         name: host-blackbox
-        image: prom/blackbox-exporter
+        image: prom/blackbox-exporter:v0.25.0
         state: started
         restart_policy: always
         networks:
           - name: todo-network
-        ports:
-          - "9115:9115"
+
+    - name: Create alertmanager configuration
+      copy:
+        dest: /root/mern-todo-app/alertmanager/alertmanager.yml
+        content: |
+          route:
+            receiver: email-alert
+
+          receivers:
+          - name: email-alert
+            email_configs:
+            - to: {{ ALERT_EMAIL }}
+              from: {{ ALERT_EMAIL }}
+              smarthost: smtp.gmail.com:587
+              auth_username: {{ ALERT_EMAIL }}
+              auth_identity: {{ ALERT_EMAIL }}
+              auth_password: {{ ALERT_EMAIL_PASSWORD }}
+        mode: "0644"
 
     - name: Run Alertmanager container
       docker_container:
         name: alertmanager
-        image: prom/alertmanager
+        image: prom/alertmanager:v0.27.0
         state: started
         restart_policy: always
         networks:
           - name: todo-network
-        ports:
-          - "9093:9093"
         volumes:
           - /root/mern-todo-app/alertmanager:/etc/alertmanager
 
     - name: Clean unused docker images
-      shell: docker image prune -f
+      community.docker.docker_prune:
+        images: true

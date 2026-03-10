@@ -14,7 +14,7 @@ provider "digitalocean" {
 resource "digitalocean_droplet" "vps" {
   name   = var.droplet_name
   region = var.region
-  size   = "s-1vcpu-2gb"
+  size   = "s-1vcpu-4gb"
   image  = "ubuntu-24-04-x64"
 
   ssh_keys = [var.ssh_key]
