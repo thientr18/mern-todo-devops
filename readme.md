@@ -151,8 +151,8 @@ ansible-playbook -i hosts.ini todo-playbook.yml
 **Access Jenkins:** `http://YOUR_SERVER_IP:8080`
 
 **Setup:**
-1. Get initial password: `docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword`
-2. Install suggested plugins + SSH Agent plugin
+1. Get initial password: `docker logs jenkins`
+2. Install suggested plugins + GitHub Integration Plugin + SSH Agent plugins
 3. Add credentials:
    - SSH key: `server_ssh_key` (Kind: SSH Username with private key)
    - Server IP: `server_host` (Kind: Secret text)
@@ -195,7 +195,7 @@ ansible-playbook -i hosts.ini todo-playbook.yml
 **Configure Proxy Host:**
 1. Dashboard → Proxy Hosts → Add Proxy Host
 2. Details tab:
-   - Domain: `todo.yourdomain.com`
+   - Domain: `todo.yourdomain`
    - Scheme: `http`, Forward to: `todo-frontend:80`
    - Enable: Cache Assets, Block Common Exploits, Websockets Support
 3. Custom Locations tab → Add Location:
@@ -206,7 +206,7 @@ ansible-playbook -i hosts.ini todo-playbook.yml
    - Enable: Force SSL, HTTP/2 Support, HSTS
 5. Save
 
-**Your app is now live at:** `https://todo.yourdomain.com` 🚀
+**Your app is now live at:** `https://todo.yourdomain` 🚀
 
 ### 6. Monitoring
 
@@ -228,9 +228,10 @@ Build Pipeline Triggered
       │  └─ SSH to VPS → Pull Code → Rebuild Containers
       │
       └─ Jenkins
-         └─ SSH to VPS → Pull Code → Rebuild Containers
-         ↓
-      Minimal downtime deployment with Docker Compose
+      │  └─ SSH to VPS → Pull Code → Rebuild Containers
+      │
+      ↓
+Minimal downtime deployment with Docker Compose
 ```
 
 ## 🐳 Docker Architecture
