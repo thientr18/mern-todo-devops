@@ -1,19 +1,68 @@
 groups:
-- name: test-alerts
-  rules:
-  - alert: AlwaysFiringTest
-    expr: vector(1)
-    for: 5s
-    annotations:
-      summary: "Always Firing Test Alert"
-      description: "This alert always fires for testing purposes."
 
-# Alert for RAM usage greater than 80%
 - name: ram-alerts
   rules:
   - alert: HighRAMUsage
-    expr: (100 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes * 100) > 80
+    expr: (100 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes * 100) > 30
     for: 5s
+    labels:
+      severity: warning
     annotations:
       summary: "High RAM Usage"
-      description: "RAM > 80 % for 5 seconds"
+      description: "RAM > 30 % for 5 seconds"
+
+
+- name: cpu-alerts
+  rules:
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance)(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage > 80% for 2 minutes"
+
+- name: disk-alerts
+  rules:
+  - alert: DiskAlmostFull
+    expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 85
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Disk almost full"
+      description: "Disk usage > 85%"
+
+- name: node-alerts
+  rules:
+  - alert: NodeDown
+    expr: up{job="node-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Server down"
+      description: "Node exporter not reachable"
+
+- name: website-alerts
+  rules:
+  - alert: WebsiteDown
+    expr: probe_success == 0
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Website down"
+      description: "Website is not responding"
+
+- name: ssl-alerts
+  rules:
+  - alert: SSLCertExpiringSoon
+    expr: (probe_ssl_earliest_cert_expiry - time()) < 86400 * 15
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "SSL certificate expiring soon"
+      description: "SSL certificate will expire in less than 15 days"
