@@ -13,8 +13,7 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no root@$SERVER_HOST '
                     cd /root/mern-todo-app
 
-                    git fetch origin
-                    git reset --hard origin/main
+                    git pull origin main
 
                     docker compose down
                     docker compose up -d --build --remove-orphans
