@@ -3,13 +3,13 @@ groups:
 - name: ram-alerts
   rules:
   - alert: HighRAMUsage
-    expr: (100 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes * 100) > 30
+    expr: (100 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes * 100) > 5
     for: 5s
     labels:
       severity: warning
     annotations:
       summary: "High RAM Usage"
-      description: "RAM > 30 % for 5 seconds"
+      description: "RAM > 5 % for 5 seconds"
 
 
 - name: cpu-alerts
