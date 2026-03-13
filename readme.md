@@ -168,17 +168,25 @@ ansible-playbook -i hosts.ini todo-playbook.yml
    - Kind: Secret text, ID: `github-token`, Secret: Paste your GitHub token
    - Kind: Secret text, ID: `github-webhook-secret`, Secret: Paste your generated webhook secret (can use password generators)
 4. Jenkins → Manage Jenkins → System → GitHub section:
-   - Add GitHub Server
-   - Name: `GitHub`
+   - Click `Add GitHub Server`
+   - Name: `todo` (or any label you want)
+   - API URL: `https://api.github.com`
    - Credentials: Select `github-token`
-   - Advanced → Check "Specify another hook URL for GitHub configuration"
+   - Click `Test connection` and confirm credential verification (shows your GitHub username + rate limit)
+   - Keep `Manage hooks` enabled
+   - Open `Advanced`:
+   - Check `Specify another hook URL for GitHub configuration`
    - Override Hook URL: `http://YOUR_SERVER_IP:8080/github-webhook/`
    - Shared secret: Select `github-webhook-secret`
-5. Pipeline → Configure → Build Triggers:
+   - Signature algorithm: `SHA-256 (Recommended)`
+   - Save in System configuration
+5. (Optional but recommended) In the same GitHub section, click `Re-register hooks for all jobs` after webhook setup.
+6. Pipeline → Configure → Build Triggers:
    - Enable "GitHub hook trigger for GITScm polling"
-6. GitHub repo → Settings → Webhooks → Add webhook:
+7. GitHub repo → Settings → Webhooks → Add webhook:
    - Payload URL: `http://YOUR_SERVER_IP:8080/github-webhook/`
    - Secret: Paste your generated webhook secret
+   - Content type: `application/json`
    - Event: Just the push event
 
 **Pipeline stages:**
