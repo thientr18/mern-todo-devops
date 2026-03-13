@@ -110,9 +110,13 @@ YOUR_SERVER_IP ansible_user=root ansible_ssh_private_key_file=/root/ansible/serv
 
 **Configure environment variables in `infrastructure/ansible/todo-playbook.yml`:**
 ```yaml
-MONGO_URI=mongodb://todo-mongo:27017/todo
-GMAIL_USERNAME=your-email@gmail.com
-GMAIL_PASSWORD=your-gmail-app-password
+JWT_SECRET: "your_jwt_secret_key"
+GMAIL_USERNAME: "your_gmail_username"
+GMAIL_PASSWORD: "your_gmail_password"
+SERVER_DOMAIN: "your_server_domain"
+SERVER_IP: "your_server_ip"
+ALERT_EMAIL: "your_gmail_username"
+ALERT_EMAIL_PASSWORD: "your_gmail_password"
 ```
 
 **Deploy with Ansible:**
