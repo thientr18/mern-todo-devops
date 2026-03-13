@@ -1,4 +1,4 @@
-# MERN Todo DevOps
+# MERN Todo DevOps Project
 
 Production-ready MERN stack application with complete DevOps automation pipeline, demonstrating Infrastructure as Code, containerization, and CI/CD best practices.
 
