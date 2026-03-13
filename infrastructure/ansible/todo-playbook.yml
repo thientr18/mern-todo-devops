@@ -15,6 +15,12 @@
       apt:
         update_cache: yes
 
+    - name: Fix SSH permissions
+      file:
+        path: /root/.ssh
+        state: directory
+        mode: "0700"
+
     - name: Add GitHub to known_hosts
       shell: ssh-keyscan github.com >> /root/.ssh/known_hosts
 
@@ -23,12 +29,6 @@
         src: /root/ansible/server_ssh_key
         dest: /root/.ssh/server_ssh_key
         mode: "0600"
-
-    - name: Fix SSH permissions
-      file:
-        path: /root/.ssh
-        state: directory
-        mode: "0700"
 
     - name: Fix SSH key permission
       file:
@@ -123,6 +123,16 @@
       docker_volume:
         name: jenkins-data
 
+    - name: Create Jenkins ssh folder
+      file:
+        path: /var/lib/docker/volumes/jenkins-data/_data/.ssh
+        state: directory
+        mode: "0700"
+
+    - name: Add GitHub to known_hosts for Jenkins
+      shell: ssh-keyscan github.com >> /var/lib/docker/volumes/jenkins-data/_data/.ssh/known_hosts
+      ignore_errors: yes
+
     - name: Run Jenkins container
       docker_container:
         name: jenkins
@@ -139,12 +149,13 @@
         - jenkins-data:/var/jenkins_home
         - /var/run/docker.sock:/var/run/docker.sock
         - /usr/bin/docker:/usr/bin/docker
+        - /root/.ssh:/root/.ssh
 
 
     - name: Run Prometheus container
       docker_container:
         name: prometheus
-        image: prom/prometheus:v2.51.0
+        image: prom/prometheus:v3.10.0
         state: started
         restart_policy: always
         networks:
@@ -162,7 +173,7 @@
     - name: Run Grafana container
       docker_container:
         name: grafana
-        image: grafana/grafana:10.4.2
+        image: grafana/grafana:12.3.5
         state: started
         restart_policy: always
         user: "472"
@@ -175,7 +186,7 @@
     - name: Run Node Exporter container
       docker_container:
         name: host-node-exporter
-        image: prom/node-exporter:v1.8.1
+        image: prom/node-exporter:v1.10.2
         state: started
         restart_policy: always
         networks:
@@ -184,7 +195,7 @@
     - name: Run Blackbox Exporter container
       docker_container:
         name: host-blackbox
-        image: prom/blackbox-exporter:v0.25.0
+        image: prom/blackbox-exporter:v0.28.0
         state: started
         restart_policy: always
         networks:
@@ -211,7 +222,7 @@
     - name: Run Alertmanager container
       docker_container:
         name: alertmanager
-        image: prom/alertmanager:v0.27.0
+        image: prom/alertmanager:v0.31.1
         state: started
         restart_policy: always
         networks:
