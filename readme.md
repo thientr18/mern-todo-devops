@@ -1,8 +1,16 @@
 # MERN Todo DevOps Project
 
+![MERN Todo DevOps Project Visual Diagram](app-diagram.png)
+
 Production-ready MERN stack application with complete DevOps automation pipeline, demonstrating Infrastructure as Code, containerization, and CI/CD best practices.
 
-Deployed on DigitalOcean with automated SSL/TLS, showcasing the complete DevOps workflow from infrastructure provisioning to production deployment.
+## 📺 Demo Video
+
+[![Watch on YouTube](https://img.shields.io/badge/YouTube-Watch%20Full%20Demo-FF0000?logo=youtube&logoColor=white&style=for-the-badge)](https://youtu.be/OB8-fbmG0Go?si=pWYBLjuzZNHM_Vbr)
+
+See the complete end-to-end deployment walkthrough (Terraform + Ansible + Docker + CI/CD + Monitoring) in this video.
+
+**Help this project grow:** ⭐ Star the repository and share the demo with your DevOps network.
 
 ## 🎯 DevOps Highlights
 
